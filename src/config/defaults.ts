@@ -37,7 +37,7 @@ export let shouldSpawn = {
     heavyMiner: this.miner,
 
     reserver: function (state) {
-        var room = Game.rooms[state.target];
+        let room = Game.rooms[state.target];
 
         // If we have no units in the room, assume it needs more reserving.
         if (!room || !room.controller.reservation) {

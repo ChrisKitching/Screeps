@@ -1,48 +1,40 @@
-var roleBase = require('role.base');
-var resources = require('resources');
-var Orders = require('orders');
+import {Role} from "./Role";
+import {Mover} from "./mover";
 
-function synthesiseOrders(creep) {
-    if (creep.needNewOrders()) {
+/**
+ * Memory fields that are mandatory for a creep of this type, to tell it what to do.
+ */
+export const REQUIRED_FIELDS = [
+    "src"  // Where to get resources from.
+];
+
+/**
+ * Fills the spawners, extensions, tower, etc.
+ */
+export let Filler: Role = {
+    synthesiseNewJobs(creep:Creep) {
         // If we're empty, fill up.
         if (creep.carry.energy < 100) {
-            creep.memory.orders = [
+            creep.memory.addJob(
                 {
-                    type: Orders.WITHDRAW,
+                    type: "WITHDRAW",
                     target: creep.memory.src,
                     resource: RESOURCE_ENERGY
                 }
-            ]
+            );
         } else {
             // Find the nearest thing to fill.
-            var target = creep.pos.findClosestByPath(creep.room.getThingsToFill());
+            let target = creep.pos.findClosestByPath(creep.room.getThingsToFill());
             if (target) {
-                creep.memory.orders = [
+                creep.memory.addJob(
                     {
-                        type: Orders.FILL,
+                        type: "FILL",
                         target: target.id
                     }
-                ];
+                );
             }
-
         }
-    }
-}
+    },
 
-/**
- * Fills the spawner, extensions, tower, etc.
- */
-module.exports = {
-    run: function(creep) {
-        // Use a given source.
-        if (!creep.memory.src) {
-            console.log("Filler awaiting orders");
-            return;
-        }
-
-        synthesiseOrders(creep);
-        roleBase.run(creep);
-        synthesiseOrders(creep);
-        roleBase.run(creep);
-    }
+    getBlueprint: Mover.getBlueprint
 };

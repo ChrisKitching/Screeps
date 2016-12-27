@@ -1,47 +1,42 @@
-var util = require('util');
-var roleBase = require('role.base');
-var Orders = require('orders');
+import {Role} from "./Role";
+import "../Room"
 
-function synthesiseOrders(creep) {
-    if (!creep.needNewOrders()) {
-        return;
-    }
+export const REQUIRED_FIELDS = [];
 
-    var target = creep.room.getAnEnemy();
+/**
+ * Very basic combat unit that sits in a room and hunts down anything that appears.
+ */
+export let Guard: Role = {
+    synthesiseNewJobs(creep:Creep) {
+        let target = creep.room.getAnEnemy();
 
-    if (target == undefined) {
-        creep.heal(creep);
+        if (target == undefined) {
+            creep.heal(creep);
 
-        if (!creep.room.controller) {
+            if (!creep.room.controller) {
+                return;
+            }
+
+            creep.addJob({
+                type: "MOVE_TO",
+                target: creep.room.controller.id,
+                closeness: 6,
+                options: {ignoreDestructibleStructures: true}
+            });
+
             return;
         }
 
-        var pos = creep.room.controller.pos;
-        var newPos = new RoomPosition(pos.x, pos.y, pos.roomName);
+        if (target instanceof Creep) {
+            console.log(creep.name + " has acquired target: " + target.id + " belonging to " + target.owner.username);
+        } else if (target instanceof Structure) {
+            console.log(creep.name + " has acquired target: " + target.id + " of type " + target.structureType);
+        }
 
-        roleBase.giveOrder(creep, {
-            type: Orders.MOVE_TO,
-            target: creep.room.controller.id,
-            closeness: 6,
-            options: {ignoreDestructibleStructures: true}
+        creep.say("KILL");
+        creep.addJob({
+            type: "ATTACK",
+            target: target.id
         });
-
-        return;
     }
-
-    console.log(creep.name + " has acquired target: " + target.id + " belonging to " + target.owner.username);
-    creep.say("KILL");
-    roleBase.giveOrder(creep, {
-        type: Orders.ATTACK,
-        target: target.id
-    });
-}
-
-module.exports = {
-    run: function(creep) {
-        synthesiseOrders(creep);
-        roleBase.run(creep);
-        synthesiseOrders(creep);
-        roleBase.run(creep);
-    }
-}
+};

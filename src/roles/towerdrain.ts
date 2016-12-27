@@ -1,44 +1,58 @@
-var roleBase = require('role.base');
-var Orders = require('orders');
+import {Role} from "./Role";
+import {blueprintCost} from "../BlueprintUtils";
+
+export const REQUIRED_FIELDS = [
+    "targetRoom",  // The room to get shot at in.
+    "homeRoom"     // The room to heal in.
+];
 
 /**
  * Walk into room, get shot for a while, leave room, heal.
  */
-module.exports = {
-    run: function(creep) {
-        creep.heal(creep);
+export let TowerDrain: Role = {
+    synthesiseNewJobs(creep: Creep) {
+        // If damaged and not in the home room, go to the home room.
+        if (creep.hits <= 1500 && creep.room.name != creep.memory.homeRoom) {
+            creep.stop();
+            creep.addJob({
+                type: "RELOCATE_TO_ROOM",
+                target: creep.memory.homeRoom
+            });
 
-        if (!creep.memory.targetRoom || !creep.memory.homeRoom) {
-            console.log("Towerdrain awaiting instructions");
             return;
         }
 
-        if (creep.hits <= 1500 && creep.room.name != creep.memory.homeRoom) {
-            if (creep.memory.currentOrder && creep.memory.currentOrder.type != Orders.RELOCATE_TO_ROOM) {
-                creep.stop();
-            }
+        // If not damaged and not in the target room, go to the target room.
+        if (creep.hits == creep.hitsMax && creep.room.name != creep.memory.targetRoom) {
+            creep.stop();
+            creep.addJob({
+                type: "RELOCATE_TO_ROOM",
+                target: creep.memory.targetRoom
+            });
 
-            creep.memory.orders = [
-                {
-                    type: Orders.RELOCATE_TO_ROOM,
-                    target: creep.memory.homeRoom
-                }
-            ]
+            return;
+        }
+    },
+
+    tick(creep: Creep) {
+        creep.heal(creep);
+
+        return false;
+    },
+
+    getBlueprint(budget: number) {
+        // As many copies of (MOVE, HEAL) as we can fit, but with all the HEALs at the end.
+        let copies = Math.floor(budget / blueprintCost([MOVE, HEAL]));
+        copies = Math.max(copies, 25);
+
+        let blueprint:string[] = [];
+        for (let i = 0; i < copies; i++) {
+            blueprint.push(MOVE);
+        }
+        for (let i = 0; i < copies; i++) {
+            blueprint.push(HEAL);
         }
 
-        if (creep.needNewOrders() && creep.hits == creep.hitsMax) {
-            if (creep.room.name != creep.memory.targetRoom) {
-                if (creep.hits == creep.hitsMax) {
-                    creep.memory.orders = [
-                        {
-                            type: Orders.RELOCATE_TO_ROOM,
-                            target: creep.memory.targetRoom
-                        }
-                    ]
-                }
-            }
-        }
-
-        roleBase.run(creep);
+        return blueprint;
     }
 };

@@ -1,7 +1,7 @@
 /**
  * The valid order type names.
  */
-type OrderType =
+export type JobType =
     "FILL" |
     "WITHDRAW" |
     "ATTACK" |
@@ -10,7 +10,7 @@ type OrderType =
     "DISMANTLE" |
     "UPGRADE_CONTROLLER" |
     "HARVEST" |
-    "REFRESH" |
+    "RENEW" |
     "RECYCLE" |
     "MOVE_TO" |
     "MOVE_DIRECTION" |
@@ -18,40 +18,44 @@ type OrderType =
     "RESERVE" |
     "CLAIM";
 
-interface Order {
-    type: OrderType;
-
-
+export interface Job {
+    type: JobType;
 }
 
 /**
  * Base class for orders that act upon a single RoomObject.
  */
-interface SingleSubjectOrder {
-    // The thing to attack/repair/whatever.
-    target: RoomObject;
+export interface SingleSubjectJob {
+    /**
+     * The ID of the subject of the order. The game entity to repair/attack/whatever.
+     */
+    target: string;
 }
 
 /**
  * Move to the given position or object.
  * Stops when we are within `closeness` of the target.
  */
-interface MoveTo extends Order {
+export interface MoveTo extends Job {
     type: "MOVE_TO";
 
-    // Where to move to: either a position, or an object in the world with a position.
-    target: RoomPosition | RoomObject;
+    // Where to move to: either a position, or the ID of an object in the world with a position.
+    target: RoomPosition | string;
 
     // The linear distance from the target which, when reached, has us consider ourselves done.
     // If omitted, interpreted as 1 (adjacent to target).
-    closeness: number | undefined;
+    closeness?: number;
+
+    // Optional options to pass to the builtin pathfinder.
+    // TODO: Remove once flowfield is a thing?
+    options?: MoveToOpts;
 }
 
 /**
  * Move to and repair the given structure, stopping when it is fixed or we run out of resources.
  * Stops when we are empty, or the repairs are complete.
  */
-interface Repair extends SingleSubjectOrder {
+export interface Repair extends SingleSubjectJob {
     type: "REPAIR";
 }
 
@@ -63,7 +67,7 @@ interface Repair extends SingleSubjectOrder {
  * The maximum possible amount will be transferred of the specified resource type (or everything
  * if none is specified).
  */
-interface Fill extends SingleSubjectOrder {
+export interface Fill extends SingleSubjectJob {
     type: "FILL";
 
     // The type of thing to fill it with (a RESOURCE_* value)
@@ -76,7 +80,7 @@ interface Fill extends SingleSubjectOrder {
  *
  * Exact opposite of Fill.
  */
-interface Withdraw extends SingleSubjectOrder {
+export interface Withdraw extends SingleSubjectJob {
     type: "WITHDRAW";
 
     // The type of thing to fill it with (a RESOURCE_* value)
@@ -88,7 +92,7 @@ interface Withdraw extends SingleSubjectOrder {
  * Move to and build the given structure. Stops when the creep runs out of carried energy, or the
  * structure is complete or stops existing.
  */
-interface Build extends SingleSubjectOrder {
+export interface Build extends SingleSubjectJob {
     type: "BUILD";
 }
 
@@ -96,7 +100,7 @@ interface Build extends SingleSubjectOrder {
  * Pursue and attack the given creep or structure. Stops when it is dead, we are dead, or either of
  * us leaves the room.
  */
-interface Attack extends Order {
+export interface Attack extends SingleSubjectJob {
     type: "ATTACK";
 }
 
@@ -104,7 +108,7 @@ interface Attack extends Order {
  * Move to and update the controller repeatedly. Stop when the creep is empty (so this is a no-op if
  * the creep is initially empty).
  */
-interface UpgradeController extends Order {
+export interface UpgradeController extends Job {
     type: "UPGRADE_CONTROLLER";
 }
 
@@ -114,7 +118,7 @@ interface UpgradeController extends Order {
  * - The creep is full.
  * - 100 ticks have elapsed since the harvesting started. TODO: Do we actually want this?
  */
-interface Harvest extends SingleSubjectOrder {
+export interface Harvest extends SingleSubjectJob {
     type: "HARVEST";
 }
 
@@ -122,14 +126,23 @@ interface Harvest extends SingleSubjectOrder {
  * Causes the unit to find the nearest spawner and recycle itself there.
  * No-op if given in a room with no spawner.
  */
-interface Recycle extends SingleSubjectOrder {
+export interface Recycle extends SingleSubjectJob {
     type: "RECYCLE";
+}
+
+/**
+ * Causes the creep to go to the target spawner and renew.
+ * This order is deemed complete with the creep is finished renewing, or
+ * when the room runs out of resources.
+ */
+export interface Renew extends SingleSubjectJob {
+    type: "RENEW";
 }
 
 /**
  * Move a single square in a given direction.
  */
-interface MoveDirection extends Order {
+export interface MoveDirection extends Job {
     type: "MOVE_DIRECTION";
 
     // One of the direction constants.
@@ -146,7 +159,7 @@ interface MoveDirection extends Order {
  * flag. Otherwise, the creep will move to an arbitrary point one square away from an entry point
  * to the room.
  */
-interface RelocateToRoom extends Order {
+export interface RelocateToRoom extends Job {
     type: "RELOCATE_TO_ROOM";
 
     // The name of the room to move to.
@@ -159,10 +172,10 @@ interface RelocateToRoom extends Order {
  * Causes the creep to move to the controller and begin reserving the room we are in.
  * This order never terminates. The controller is signed with `message`, if given.
  */
-interface Reserve extends Order {
+export interface Reserve extends Job {
     type: "RESERVE";
 
-    message: string | undefined;
+    message?: string;
 }
 
 /**
@@ -171,8 +184,9 @@ interface Reserve extends Order {
  * Causes the creep to move to the controller and claim the room we are in.
  * The controller is signed with `message`, if given.
  */
-interface Claim extends Order {
+export interface Claim extends Job {
     type: "CLAIM";
 
-    message: string | undefined;
+    //  WE ARE THE BORG.
+    message?: string;
 }

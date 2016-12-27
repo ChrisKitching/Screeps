@@ -1,13 +1,13 @@
 export function runDefensive(room: Room, tower) {
     // Find stuff to kill.
-    var target = room.getAnEnemy();
+    let target = room.getAnEnemy();
     if (target != undefined) {
         tower.attack(target);
         return;
     }
 
     // Find stuff to heal.
-    var toHeal = room.getInjuredFriendly();
+    let toHeal = room.getInjuredFriendly();
     if (toHeal != undefined) {
         tower.heal(toHeal);
         return;
@@ -16,21 +16,21 @@ export function runDefensive(room: Room, tower) {
 
 export function run(room, tower) {
     // Find stuff to kill.
-    var target = room.getAnEnemy();
+    let target = room.getAnEnemy();
     if (target != undefined) {
         tower.attack(target);
         return;
     }
 
     // Find stuff to heal.
-    var toHeal = room.getInjuredFriendly();
+    let toHeal = room.getInjuredFriendly();
     if (toHeal != undefined) {
         tower.heal(toHeal);
         return;
     }
 
     // Find stuff to repair.
-    var toRepair = room.getDamagedStructure();
+    let toRepair = room.getDamagedStructure();
     if (toRepair != undefined) {
         tower.repair(toRepair);
         return;

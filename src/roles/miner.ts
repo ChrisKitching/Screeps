@@ -1,71 +1,90 @@
-var roleBase = require('role.base');
-var Orders = require('orders');
+import {Role} from "./Role";
+import {blueprintCost} from "../BlueprintUtils";
 
-/**
- * Mines shit and drops it on the floor.
- */
-module.exports = {
-    run: function(creep) {
-        // Require that Memory.toMine be set...
-        if (!creep.memory.toMine) {
-            console.log(creep.name + " awaiting instructions");
-            return;
-        }
+export const REQUIRED_FIELDS = [
+    "toMine",    // ID of the thing to mine (Source or Mineral)
+    "targetRoom" // Name of the room in which mining should be carried out.
+];
 
+
+export let Miner: Role = {
+    tick(creep: Creep) {
         // If we have storage capacity, dump resources into the container we're
         // standing on, or maybe repair it.
-        if (creep.carry.energy > 10) {
-            // If you're sitting on a construction site, construct it!
-            let constructions = creep.room.lookForAt(LOOK_CONSTRUCTION_SITES, creep.pos);
-            if (constructions.length > 0) {
-                let construction = constructions[0];
-                creep.build(construction);
+        if (creep.carry.energy < 10) {
+            return false;
+        }
+
+        // If you're sitting on a construction site, construct it!
+        let constructions = creep.room.lookForAt<ConstructionSite>(LOOK_CONSTRUCTION_SITES, creep.pos);
+        if (constructions.length > 0) {
+            let construction = constructions[0];
+            creep.build(construction);
+            return true;
+        }
+
+        let containers = creep.room.lookForAt<Structure>(LOOK_STRUCTURES, creep.pos).filter(function (c: Structure) {
+            return c.structureType == STRUCTURE_CONTAINER
+        });
+
+        if (containers.length > 0) {
+            let container = containers[0];
+
+            // If appropriate, repair the container.
+            if ((container.hitsMax - container.hits) >= creep.getRepairPower()) {
+                creep.repair(container);
+                return true;
+            }
+        }
+
+        creep.drop(RESOURCE_ENERGY);
+
+        // We did something, but we can still do more!
+        return false;
+    },
+
+    synthesiseNewJobs(creep: Creep) {
+        if (creep.room.name != creep.memory.targetRoom) {
+            creep.memory.orders = [{
+                type: "RELOCATE_TO_ROOM",
+                target: creep.memory.targetRoom
+            }];
+        } else {
+
+            creep.memory.orders = [{
+                type: "HARVEST",
+                target: creep.memory.toMine
+            }];
+
+            // If there's a flag adjacent to the source, move there first.
+            let src = Game.getObjectById(creep.memory.toMine);
+            if (src == undefined) {
+                console.log(creep.name + " is on fire");
                 return;
             }
 
-            let containers = creep.room.lookForAt(LOOK_STRUCTURES, creep.pos).filter(function(c) { return c.structureType == STRUCTURE_CONTAINER });
-            if (containers.length > 0) {
-                let container = containers[0];
-
-                // If appropriate, repair the container.
-                if ((container.hitsMax - container.hits) >= creep.getRepairPower()) {
-                    creep.repair(container);
-                    return;
-                }
-            }
-
-            creep.drop(RESOURCE_ENERGY);
-        }
-
-
-        if (creep.needNewOrders()) {
-            if (creep.room.name != creep.memory.targetRoom) {
-                creep.memory.orders = [{
-                    type: Orders.RELOCATE_TO_ROOM,
-                    target: creep.memory.targetRoom
-                }];
-            } else {
-
-                creep.memory.orders = [{
-                    type: Orders.HARVEST,
-                    target: creep.memory.toMine
-                }];
-
-                // If there's a flag adjacent to the source, move there first.
-                var src = Game.getObjectById(creep.memory.toMine);
-                if (!src) {
-                    console.log(creep.name + " is on fire");
-                }
-                var flags = src.pos.findInRange(FIND_FLAGS, 2);
-                if (flags.length == 1) {
-                    creep.memory.orders.unshift({
-                        type: Orders.MOVE_TO,
-                        position: flags[0].pos
-                    })
-                }
+            let flags = src.pos.findInRange(FIND_FLAGS, 2);
+            if (flags.length == 1) {
+                creep.memory.orders.unshift({
+                    type: "MOVE_TO",
+                    position: flags[0].pos
+                })
             }
         }
+    },
 
-        roleBase.run(creep);
+    getBlueprint(budget: number) {
+        // This is the only sane size for a miner, really.
+        let miner = [
+            WORK, WORK, MOVE,
+            WORK, WORK, MOVE,
+            WORK, MOVE
+        ];
+
+        if (budget < blueprintCost(miner)) {
+            return undefined;
+        }
+
+        return miner;
     }
 };

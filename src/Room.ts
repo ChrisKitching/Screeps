@@ -1,27 +1,37 @@
-let Orders = require('orders');
-let util = require('util');
-let CreepClasses = require('CreepClasses');
-
 // How damaged something has to be before we'll bother repairing it.
 const HITS_CARE_THRESH = 500;
-const WALL_DONE_THRESH = 10000000;
 
 let SHOULD_NOT = -4;
 let FAILED = -3;
 
 
 /**
+ * The maximum energy storable in a room of each level
+ */
+const MAX_ENERGY = [
+    300,  // 1
+    550,  // 2
+    800,  // 3
+    1300, // 4
+    1800, // 5
+    2300, // 6
+    5600, // 7
+    12900 // 8
+];
+
+
+/**
  * Find and return the enemy that should be most urgently murdered, or undefined
  */
-Room.prototype.getAnEnemy = function () {
-    var candidates = this.find(FIND_CREEPS);
+Room.prototype.getAnEnemy = function(): Creep | Structure {
+    let candidates = this.find(FIND_CREEPS);
 
     if (candidates.length == 0) {
         candidates = this.find(FIND_HOSTILE_STRUCTURES);
     }
 
     for (i in candidates) {
-        var enemy = candidates[i];
+        let enemy = candidates[i];
 
         if (enemy.hits == 0) {
             continue;
@@ -43,7 +53,7 @@ Room.prototype.getAnEnemy = function () {
  * Return true iff the room's specification defines a creep of type `type`, and at least one of
  * these is currently alive.
  */
-Room.prototype.hasCreep = function (type) {
+Room.prototype.hasCreep = function(type): boolean {
     if (!this.memory.slots) {
         // Not a programmed room!
         return false;
@@ -56,8 +66,8 @@ Room.prototype.hasCreep = function (type) {
     return Game.creeps[this.memory.slots[type][0]] != undefined;
 };
 
-Room.prototype.getShittiestWall = function () {
-    var walls = this.find(FIND_STRUCTURES, {
+Room.prototype.getShittiestWall = function(): StructureWall | StructureRampart {
+    let walls = this.find(FIND_STRUCTURES, {
         filter: function (structure) {
             return (structure.structureType == STRUCTURE_WALL || structure.structureType == STRUCTURE_RAMPART)
         }
@@ -76,19 +86,15 @@ Room.prototype.getShittiestWall = function () {
         }
     }
 
-    if (min >= WALL_DONE_THRESH) {
-        return;
-    }
-
     return walls[minIndex]
 };
 
-Room.prototype.getEnemies = function () {
-    var candidates = this.find(FIND_CREEPS);
+Room.prototype.getEnemies = function(): Creep[] {
+    let candidates = this.find(FIND_CREEPS);
 
-    var targets = [];
-    for (i in candidates) {
-        var enemy = candidates[i];
+    let targets = [];
+    for (let i in candidates) {
+        let enemy = candidates[i];
 
         if (enemy.hits == 0) {
             continue;
@@ -112,11 +118,11 @@ Room.prototype.getEnemies = function () {
  * Return an arbitrary injured friendly unit.
  */
 Room.prototype.getInjuredFriendly = function () {
-    var candidates = this.find(FIND_CREEPS);
+    let candidates = this.find(FIND_CREEPS);
 
-    var target = undefined;
+    let target = undefined;
     for (i in candidates) {
-        var friend = candidates[i];
+        let friend = candidates[i];
 
         if (friend.hits == friend.hitsMax) {
             continue;
@@ -134,7 +140,7 @@ Room.prototype.getInjuredFriendly = function () {
  * Return an arbitrary, friendly, non-wall structure in need of repair.
  */
 Room.prototype.getDamagedStructure = function () {
-    var structures = this.find(FIND_STRUCTURES);
+    let structures = this.find(FIND_STRUCTURES);
 
     for (i in structures) {
         let structure = structures[i];
@@ -156,8 +162,8 @@ Room.prototype.getDamagedStructure = function () {
     }
 };
 
-Room.prototype.getThingsToFill = function () {
-    let structures = this.find(FIND_MY_STRUCTURES).filter(function (structure) {
+Room.prototype.getThingsToFill = function (): Structure[] {
+    return this.find(FIND_MY_STRUCTURES).filter(function (structure) {
         // Rule out things that simply can't be filled.
         if (!util.structureIsFillable(structure)) {
             return false;
@@ -171,8 +177,6 @@ Room.prototype.getThingsToFill = function () {
 
         return true;
     });
-
-    return structures;
 };
 
 /**
@@ -238,11 +242,23 @@ Room.prototype.gc = function () {
     }
 
     // Cull dead creeps from renewer slots.
-    let renewer = this.memory.renewers;
     for (let spawnerName in this.memory.renewers) {
+        if (!this.memory.renewers.hasOwnProperty(spawnerName)) {
+            continue;
+        }
+
         let renewerName = this.memory.renewers[spawnerName];
         if (!Game.creeps[renewerName]) {
             delete this.memory.renewers[spawnerName];
+        }
+    }
+};
+
+Room.prototype.getEffectiveLevel = function() {
+    let avail = this.energyCapacityAvailable;
+    for (let i = 0; i < MAX_ENERGY.length; i++) {
+        if (MAX_ENERGY[i] > avail) {
+            return i;
         }
     }
 };
@@ -259,7 +275,7 @@ Room.prototype.spawnCreep = function (type, initialMemory) {
 
         let startingMemory = Object.assign({role: type, orders: []}, initialMemory);
 
-        let creepName = spawner.createCreep(CreepClasses.getBlueprint(type, this.controller.level), type + (Memory.creepNum++), startingMemory);
+        let creepName = spawner.createCreep(CreepClasses.getBlueprint(type, this.getEffectiveLevel()), type + (Memory.creepNum++), startingMemory);
         // Check for all error codes, exhaustively.
 
         switch (creepName) {
@@ -307,7 +323,7 @@ Room.prototype.maybeSpawnShit = function () {
 
         let roleSlots = this.memory.slots[role];
         let wantedUnits = initialState[role];
-        for (ind in wantedUnits) {
+        for (let ind in wantedUnits) {
             // This unit already exists.
             if (roleSlots.hasOwnProperty(ind.toString())) {
                 continue;
@@ -329,13 +345,3 @@ Room.prototype.maybeSpawnShit = function () {
         }
     }
 };
-
-
-declare global {
-    interface Room {
-        hasFriendlySpawner(): boolean;
-        gc(): void;
-        spawnCreep(type: string, initialMemory: any): void;
-        maybeSpawnShit(): void;
-    }
-}

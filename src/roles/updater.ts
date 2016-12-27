@@ -1,35 +1,34 @@
-var roleBase = require('role.base');
-var Orders = require('orders');
+import {Role} from "./Role";
+import * as roleMixins from "./roleMixins";
+import {Withdraw} from "../Orders";
 
-function synthesiseOrders(creep) {
-    if (!creep.needNewOrders()) {
-        return
-    }
+export const REQUIRED_FIELDS = [
+    "src"  // Where to get resources from
+];
 
-    creep.memory.orders = [
-        {
-            type: Orders.WITHDRAW,
+export let Updater: Role = {
+    tick(creep: Creep) {
+        roleMixins.scoopWalkedEnergy(creep);
+
+        return false;
+    },
+
+    /**
+     * Takes resources from the specified storage and uses them to upgrade the controller.
+     */
+    synthesiseNewJobs(creep: Creep) {
+        creep.addJob({
+            type: "WITHDRAW",
             target: creep.memory.src,
             resource: RESOURCE_ENERGY
-        },
-        {
-            type: Orders.UPGRADE_CONTROLLER
-        }
-    ];
-}
+        } as Withdraw);
 
-/**
- * Takes resources from the specified storage and uses them to upgrade the controller.
- */
-module.exports = {
-    run: function(creep) {
-        if (!creep.memory.src) {
-            console.log("Updater awaiting instructions");
-        }
+        creep.addJob({
+            type: "UPGRADE_CONTROLLER"
+        });
+    },
 
-        synthesiseOrders(creep);
-        roleBase.run(creep);
-        synthesiseOrders(creep);
-        roleBase.run(creep);
+    getBlueprint(budget: number) {
+
     }
 };

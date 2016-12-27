@@ -1,33 +1,47 @@
-var roleBase = require('role.base');
-var Orders = require('orders');
+import {Role} from "./Role";
+import {blueprintCost} from "../BlueprintUtils";
+import {RelocateToRoom} from "../Orders";
+
+export const REQUIRED_FIELDS = [
+    "target"  // Room to reserve.
+];
 
 /**
  * Suicidal creep that goes to a room and reserves it as much as possible.
  */
-module.exports = {
-    run: function(creep) {
-        // Require that Memory.target be set to the room name
-        if (!creep.memory.target) {
-            console.log(creep.name + " awaiting instructions");
-            return;
+export let Reserver: Role = {
+    synthesiseNewJobs(creep: Creep) {
+        if (creep.room.name == creep.memory.target) {
+            creep.addJob(
+                {
+                    type: "RESERVE"
+                });
+        } else {
+            creep.addJob(
+                {
+                    type: "RELOCATE_TO_ROOM",
+                    targetRoom: creep.memory.target
+                } as RelocateToRoom
+            );
+        }
+    },
+
+    getBlueprint(budget: number) {
+        // Keep adding [CLAIM, MOVE] until you can't any more.
+        let blueprint = [CLAIM, MOVE];
+        let minCost = blueprintCost(blueprint);
+
+        if (budget < minCost) {
+            return undefined;
         }
 
-        if (creep.needNewOrders()) {
-            if (creep.room.name == creep.memory.target) {
-                roleBase.giveOrder(creep,
-                    {
-                        type: Orders.RESERVE
-                    });
-            } else {
-                roleBase.giveOrder(creep,
-                    {
-                        type: Orders.RELOCATE_TO_ROOM,
-                        target: creep.memory.target
-                    }
-                );
-            }
+        while (budget >= minCost && blueprint.length <= 48) {
+            blueprint.push(CLAIM);
+            blueprint.push(MOVE);
+
+            budget -= minCost
         }
 
-        roleBase.run(creep);
+        return blueprint;
     }
 };
