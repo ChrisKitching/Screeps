@@ -1,12 +1,12 @@
 {
   "name": "screeps",
   "version": "1.0.0",
-  "description": "",
+  "description": "WE ARE THE BORG",
   "main": "gruntfile.js",
   "dependencies": {
     "grunt": "^1.0.1",
     "grunt-screeps": "^1.2.1",
-    "screeps-typescript-declarations": "^4.2.1",
+    "screeps-typescript-declarations": "https://github.com/ChrisKitching/Screeps-Typescript-Declarations/archive/master.tar.gz",
     "typescript": "^2.1.4"
   },
   "devDependencies": {},
