@@ -1,7 +1,7 @@
 import * as roleMixins from "./roleMixins";
 import {Role} from "./Role";
 import {Mover} from "./mover";
-import {blueprintCost} from "../BlueprintUtils";
+import {Blueprint.cost} from "../BlueprintUtils";
 
 
 export const REQUIRED_FIELDS = [
@@ -15,6 +15,8 @@ export const REQUIRED_FIELDS = [
  * maintaining roads in exploited rooms.
  */
 export let RemoteMover: Role = {
+    name: "remoteMover",
+
     onSpawn: Mover.onSpawn,
 
     tick(creep: Creep) {
@@ -28,7 +30,7 @@ export let RemoteMover: Role = {
     getBlueprint(budget: number) {
         // The part which adds the special WORK part...
         let bp = [WORK, CARRY, MOVE];
-        let prefixCost = blueprintCost(bp);
+        let prefixCost = Blueprint.cost(bp);
         if (budget < prefixCost) {
             return undefined;
         }

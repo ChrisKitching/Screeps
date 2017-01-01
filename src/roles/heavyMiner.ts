@@ -1,6 +1,6 @@
 import {Role} from "./Role";
-import {blueprintCost} from "../BlueprintUtils";
 import {Miner} from "./miner";
+import * as Blueprint from "../BlueprintUtils";
 
 export const REQUIRED_FIELDS = [
     "toMine",    // ID of the thing to mine (Source or Mineral)
@@ -13,6 +13,7 @@ export const REQUIRED_FIELDS = [
  * outside of tower coverage.
  */
 export let HeavyMiner: Role = {
+    name: "heavyMiner",
     tick: Miner.tick,
     synthesiseNewJobs: Miner.synthesiseNewJobs,
 
@@ -25,7 +26,7 @@ export let HeavyMiner: Role = {
             CARRY
         ];
 
-        if (budget < blueprintCost(miner)) {
+        if (budget < Blueprint.cost(miner)) {
             return undefined;
         }
 

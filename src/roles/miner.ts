@@ -1,5 +1,5 @@
 import {Role} from "./Role";
-import {blueprintCost} from "../BlueprintUtils";
+import {Blueprint.cost} from "../BlueprintUtils";
 
 export const REQUIRED_FIELDS = [
     "toMine",    // ID of the thing to mine (Source or Mineral)
@@ -8,6 +8,8 @@ export const REQUIRED_FIELDS = [
 
 
 export let Miner: Role = {
+    name: "miner",
+
     tick(creep: Creep) {
         // If we have storage capacity, dump resources into the container we're
         // standing on, or maybe repair it.
@@ -57,13 +59,13 @@ export let Miner: Role = {
             }];
 
             // If there's a flag adjacent to the source, move there first.
-            let src = Game.getObjectById(creep.memory.toMine);
+            let src = Game.getObjectById<Source>(creep.memory.toMine);
             if (src == undefined) {
                 console.log(creep.name + " is on fire");
                 return;
             }
 
-            let flags = src.pos.findInRange(FIND_FLAGS, 2);
+            let flags = src.pos.findInRange<Flag>(FIND_FLAGS, 2);
             if (flags.length == 1) {
                 creep.memory.orders.unshift({
                     type: "MOVE_TO",
@@ -81,7 +83,7 @@ export let Miner: Role = {
             WORK, MOVE
         ];
 
-        if (budget < blueprintCost(miner)) {
+        if (budget < Blueprint.cost(miner)) {
             return undefined;
         }
 

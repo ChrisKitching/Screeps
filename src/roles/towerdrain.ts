@@ -1,5 +1,5 @@
 import {Role} from "./Role";
-import {blueprintCost} from "../BlueprintUtils";
+import {Blueprint.cost} from "../BlueprintUtils";
 
 export const REQUIRED_FIELDS = [
     "targetRoom",  // The room to get shot at in.
@@ -10,6 +10,8 @@ export const REQUIRED_FIELDS = [
  * Walk into room, get shot for a while, leave room, heal.
  */
 export let TowerDrain: Role = {
+    name: "towerdrain",
+
     synthesiseNewJobs(creep: Creep) {
         // If damaged and not in the home room, go to the home room.
         if (creep.hits <= 1500 && creep.room.name != creep.memory.homeRoom) {
@@ -42,7 +44,7 @@ export let TowerDrain: Role = {
 
     getBlueprint(budget: number) {
         // As many copies of (MOVE, HEAL) as we can fit, but with all the HEALs at the end.
-        let copies = Math.floor(budget / blueprintCost([MOVE, HEAL]));
+        let copies = Math.floor(budget / Blueprint.cost([MOVE, HEAL]));
         copies = Math.max(copies, 25);
 
         let blueprint:string[] = [];

@@ -1,6 +1,7 @@
 import {Role} from "./Role";
 import * as roleMixins from "./roleMixins";
-import {blueprintCost} from "../BlueprintUtils";
+import * as Blueprint from "../BlueprintUtils";
+import {MoveTo} from "../jobs/Jobs";
 
 
 export const REQUIRED_FIELDS = [
@@ -9,6 +10,8 @@ export const REQUIRED_FIELDS = [
 ];
 
 export let Mover: Role = {
+    name: "mover",
+
     onSpawn(creep: Creep) {
         creep.memory.scoopIndex = 0;
     },
@@ -24,7 +27,7 @@ export let Mover: Role = {
         if (_.sum(creep.carry) == creep.carryCapacity) {
             creep.memory.orders = [
                 {
-                    type: Jobs.FILL,
+                    type: "FILL",
                     target: creep.memory.dst
                 }
             ]
@@ -34,36 +37,44 @@ export let Mover: Role = {
                 creep.memory.scoopIndex = (creep.memory.scoopIndex + 1) % creep.memory.scoopFlags.length;
 
                 // Find dropped energy at the endpoint.
-                let energyfound = flagToUse.room.lookForAt(LOOK_ENERGY, flagToUse);
+                let energyfound = flagToUse.room.lookForAt<Resource>(LOOK_ENERGY, flagToUse);
 
-                if (energyfound[0] && energyfound[0].energy > 100) {
+                if (energyfound[0] && energyfound[0].amount > 100) {
                     creep.addJob(
                         {
-                            type: Jobs.HARVEST,
+                            type: "HARVEST",
                             target: energyfound[0].id
                         }
                     )
                 }
 
-                let targetContainers = flagToUse.room.lookForAt(LOOK_STRUCTURES, flagToUse).filter(function (structure) {
+                let targetContainers = flagToUse.room.lookForAt<Container>(LOOK_STRUCTURES, flagToUse).filter(function (structure: Structure) {
                     return structure.structureType == STRUCTURE_CONTAINER
                 });
                 if (targetContainers.length > 0) {
                     creep.addJob(
                         {
-                            type: Jobs.WITHDRAW,
+                            type: "WITHDRAW",
                             target: targetContainers[0].id,
                             persist: false
                         }
                     );
                 }
+            } else {
+                creep.addJob(
+                    {
+                        type: "MOVE_TO",
+                        target: flagToUse.pos,
+                        closeness: 1
+                    } as MoveTo
+                );
             }
         }
     },
 
     getBlueprint(budget: number) {
         // As many copies of [CARRY, CARRY, MOVE] as can fit.
-        let copyCost = blueprintCost([CARRY, CARRY, MOVE]);
+        let copyCost = Blueprint.cost([CARRY, CARRY, MOVE]);
         let numCopies = Math.floor(budget / copyCost);
         numCopies = Math.max(numCopies, 16);
 
@@ -74,7 +85,7 @@ export let Mover: Role = {
 
         // We may have space for a final [CARRY, MOVE] before we hit 50 parts.
         budget -= copyCost * numCopies;
-        if (budget >= blueprintCost([CARRY, MOVE])) {
+        if (budget >= Blueprint.cost([CARRY, MOVE])) {
             blueprint = blueprint.concat([CARRY, MOVE]);
         }
 

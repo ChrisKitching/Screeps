@@ -11,6 +11,7 @@ export type JobType =
     "UPGRADE_CONTROLLER" |
     "HARVEST" |
     "RENEW" |
+    "HEAL" |
     "RECYCLE" |
     "MOVE_TO" |
     "MOVE_DIRECTION" |
@@ -18,18 +19,36 @@ export type JobType =
     "RESERVE" |
     "CLAIM";
 
+export enum JobCompletionStatus {
+    DONE,
+    NOT_DONE,
+    FAILED,
+
+    // Used when a job has been swapped for another job.
+    PREEMPT
+}
+
 export interface Job {
     type: JobType;
 }
 
+
 /**
  * Base class for orders that act upon a single RoomObject.
  */
-export interface SingleSubjectJob {
+export interface SingleSubjectJob extends Job {
     /**
      * The ID of the subject of the order. The game entity to repair/attack/whatever.
      */
     target: string;
+
+    // The maximum range at which this job can actually be carried out (set by subclasses).
+    range: number;
+}
+
+export interface ControllerSubjectJob extends Job {
+    // The maximum range at which this job can actually be carried out (set by subclasses).
+    range: number;
 }
 
 /**
@@ -49,6 +68,14 @@ export interface MoveTo extends Job {
     // Optional options to pass to the builtin pathfinder.
     // TODO: Remove once flowfield is a thing?
     options?: MoveToOpts;
+
+    // If set, will cache the entire route on startup to save resources.
+    // The downside of this is that deadlock is possible in the presence of traffic.
+    useCaching?: boolean;
+
+    // The route to follow. You can set this yourself, otherwise it may be calculated as part of job
+    // desugaring.
+    route?: RoomPosition[];
 }
 
 /**
@@ -57,6 +84,7 @@ export interface MoveTo extends Job {
  */
 export interface Repair extends SingleSubjectJob {
     type: "REPAIR";
+    range: 3;
 }
 
 /**
@@ -69,10 +97,12 @@ export interface Repair extends SingleSubjectJob {
  */
 export interface Fill extends SingleSubjectJob {
     type: "FILL";
+    range: 1;
 
-    // The type of thing to fill it with (a RESOURCE_* value)
+    // The type of thing to fill it with (a RESOURCE_* value). If omitted, we try to transfer all
+    // that is carried, of all types.
     // TODO: Type this shit?
-    resource: string
+    resource?: string
 }
 
 /**
@@ -82,10 +112,15 @@ export interface Fill extends SingleSubjectJob {
  */
 export interface Withdraw extends SingleSubjectJob {
     type: "WITHDRAW";
+    range: 1;
 
     // The type of thing to fill it with (a RESOURCE_* value)
     // TODO: Type this shit?
-    resource: string
+    resource: string,
+
+    // If true, sit at the container until enough energy is available to fill yourself.
+    // If false or omitted, just visit the target, take what's there, and call it a day.
+    persist?: boolean;
 }
 
 /**
@@ -94,6 +129,15 @@ export interface Withdraw extends SingleSubjectJob {
  */
 export interface Build extends SingleSubjectJob {
     type: "BUILD";
+    range: 3;
+}
+
+/**
+ * Move to and dismantle the given structure.
+ */
+export interface Dismantle extends SingleSubjectJob {
+    type: "DISMANTLE";
+    range: 1;
 }
 
 /**
@@ -102,14 +146,25 @@ export interface Build extends SingleSubjectJob {
  */
 export interface Attack extends SingleSubjectJob {
     type: "ATTACK";
+    range: 3;
+}
+
+/**
+ * Pursue and heal the given creep. Stops when it is dead, we are dead, either of us leaves the
+ * room, or the target is fully healed.
+ */
+export interface Heal extends SingleSubjectJob {
+    type: "HEAL";
+    range: 3;
 }
 
 /**
  * Move to and update the controller repeatedly. Stop when the creep is empty (so this is a no-op if
  * the creep is initially empty).
  */
-export interface UpgradeController extends Job {
+export interface UpgradeController extends ControllerSubjectJob {
     type: "UPGRADE_CONTROLLER";
+    range: 3;
 }
 
 /**
@@ -120,6 +175,7 @@ export interface UpgradeController extends Job {
  */
 export interface Harvest extends SingleSubjectJob {
     type: "HARVEST";
+    range: 1;
 }
 
 /**
@@ -128,6 +184,7 @@ export interface Harvest extends SingleSubjectJob {
  */
 export interface Recycle extends SingleSubjectJob {
     type: "RECYCLE";
+    range: 1;
 }
 
 /**
@@ -137,6 +194,7 @@ export interface Recycle extends SingleSubjectJob {
  */
 export interface Renew extends SingleSubjectJob {
     type: "RENEW";
+    range: 1;
 }
 
 /**
@@ -147,7 +205,7 @@ export interface MoveDirection extends Job {
 
     // One of the direction constants.
     // LEFT, RIGHT, TOP, BOTTOM, TOP_LEFT, TOP_RIGHT, BOTTOM_RIGHT, BOTTOM_LEFT.
-    direction: string;
+    direction: number;
 }
 
 
@@ -172,8 +230,9 @@ export interface RelocateToRoom extends Job {
  * Causes the creep to move to the controller and begin reserving the room we are in.
  * This order never terminates. The controller is signed with `message`, if given.
  */
-export interface Reserve extends Job {
+export interface Reserve extends ControllerSubjectJob {
     type: "RESERVE";
+    range: 1;
 
     message?: string;
 }
@@ -184,9 +243,13 @@ export interface Reserve extends Job {
  * Causes the creep to move to the controller and claim the room we are in.
  * The controller is signed with `message`, if given.
  */
-export interface Claim extends Job {
+export interface Claim extends ControllerSubjectJob {
     type: "CLAIM";
+    range: 1;
 
     //  WE ARE THE BORG.
     message?: string;
 }
+
+// The jobs that towers can do.
+export type TowerJob = Attack | Repair | Heal

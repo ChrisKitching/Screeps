@@ -1,7 +1,7 @@
 /**
  * Calculate the cost of building a given blueprint.
  */
-export function blueprintCost(bp: string[]) {
+export function cost(bp: string[]) {
     let accumulator = 0;
     for (let i in bp) {
         if (!bp.hasOwnProperty(i)) {
@@ -41,6 +41,18 @@ export function blueprintCost(bp: string[]) {
     return accumulator;
 }
 
-export function unitCost(type, level) {
-    return this.blueprintCost(this.getBlueprint(type, level));
+/**
+ * Build a blueprint from a set of parts.
+ */
+export function fromRepeatedParts(budget: number, parts: string[][]) {
+    let bp: string[] = [];
+    let partIndex = 0;
+
+    while (budget >= cost(parts[partIndex]) && bp.length <= parts[partIndex].length) {
+        bp.concat(parts[partIndex]);
+        budget -= cost(parts[partIndex]);
+        partIndex = (partIndex + 1) % parts.length;
+    }
+
+    return bp;
 }

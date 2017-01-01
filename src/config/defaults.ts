@@ -23,7 +23,7 @@ export let creepPriority = [
 ];
 
 export let shouldSpawn = {
-    miner: function (state) {
+    miner: function (state: CreepMemory) {
         let source = Game.getObjectById(state.toMine);
         if (source instanceof Mineral) {
             // Minerals spend _long_ periods in the "dead" state. Check for
@@ -36,11 +36,15 @@ export let shouldSpawn = {
 
     heavyMiner: this.miner,
 
-    reserver: function (state) {
+    reserver: function (state: CreepMemory) {
         let room = Game.rooms[state.target];
 
         // If we have no units in the room, assume it needs more reserving.
-        if (!room || !room.controller.reservation) {
+        if (!room) {
+            return true;
+        }
+
+        if (!room.controller.reservation) {
             return true;
         }
 

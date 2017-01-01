@@ -12,6 +12,8 @@ export const REQUIRED_FIELDS = [
  * Fills the spawners, extensions, tower, etc.
  */
 export let Filler: Role = {
+    name: "filler",
+
     synthesiseNewJobs(creep:Creep) {
         // If we're empty, fill up.
         if (creep.carry.energy < 100) {
@@ -24,7 +26,7 @@ export let Filler: Role = {
             );
         } else {
             // Find the nearest thing to fill.
-            let target = creep.pos.findClosestByPath(creep.room.getThingsToFill());
+            let target = creep.pos.findClosestByPath<Structure>(creep.room.getThingsToFill());
             if (target) {
                 creep.memory.addJob(
                     {

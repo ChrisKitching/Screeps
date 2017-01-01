@@ -1,6 +1,6 @@
 import {Role} from "./Role";
-import {blueprintCost} from "../BlueprintUtils";
-import {RelocateToRoom} from "../Orders";
+import {Blueprint.cost} from "../BlueprintUtils";
+import {RelocateToRoom} from "../jobs/Jobs";
 
 export const REQUIRED_FIELDS = [
     "target"  // Room to reserve.
@@ -10,6 +10,8 @@ export const REQUIRED_FIELDS = [
  * Suicidal creep that goes to a room and reserves it as much as possible.
  */
 export let Reserver: Role = {
+    name: "reserver",
+
     synthesiseNewJobs(creep: Creep) {
         if (creep.room.name == creep.memory.target) {
             creep.addJob(
@@ -29,7 +31,7 @@ export let Reserver: Role = {
     getBlueprint(budget: number) {
         // Keep adding [CLAIM, MOVE] until you can't any more.
         let blueprint = [CLAIM, MOVE];
-        let minCost = blueprintCost(blueprint);
+        let minCost = Blueprint.cost(blueprint);
 
         if (budget < minCost) {
             return undefined;

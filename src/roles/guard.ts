@@ -7,6 +7,8 @@ export const REQUIRED_FIELDS = [];
  * Very basic combat unit that sits in a room and hunts down anything that appears.
  */
 export let Guard: Role = {
+    name: "guard",
+
     synthesiseNewJobs(creep:Creep) {
         let target = creep.room.getAnEnemy();
 
@@ -38,5 +40,32 @@ export let Guard: Role = {
             type: "ATTACK",
             target: target.id
         });
+    },
+
+    getBlueprint(budget: number) {
+        return [
+            TOUGH,
+            TOUGH,
+            TOUGH,
+            TOUGH,
+            TOUGH,
+            TOUGH,
+            TOUGH,
+            TOUGH,
+            MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+            MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+            ATTACK,
+            ATTACK,
+            ATTACK,
+            ATTACK,
+            ATTACK,
+            ATTACK,
+            ATTACK,
+            ATTACK,
+            ATTACK,
+            ATTACK,
+            ATTACK,
+            HEAL
+        ]
     }
 };

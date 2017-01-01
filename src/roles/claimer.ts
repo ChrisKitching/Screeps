@@ -1,6 +1,6 @@
 import {Role} from "./Role";
-import {RelocateToRoom} from "../Orders";
-import {blueprintCost} from "../BlueprintUtils";
+import {RelocateToRoom} from "../jobs/Jobs";
+import * as Blueprint from "../BlueprintUtils";
 
 /**
  * Memory fields that are mandatory for a creep of this type, to tell it what to do.
@@ -13,6 +13,8 @@ export const REQUIRED_FIELDS = [
  * Suicidal creep that goes to a room and claims it. And then does nothing else...
  */
 export let Claimer: Role = {
+    name: "claimer",
+
     synthesiseNewJobs(creep: Creep) {
         if (creep.room.name == creep.memory.target) {
             creep.addJob(
@@ -34,7 +36,7 @@ export let Claimer: Role = {
         // It's gotta have one CLAIM and one MOVE. After that, we just add up to 5
         // extra MOVEs, after which there's no point doing anything else.
         let blueprint = [CLAIM, MOVE];
-        let minimumCost = blueprintCost(blueprint);
+        let minimumCost = Blueprint.cost(blueprint);
 
         if (budget < minimumCost) {
             return undefined;
@@ -42,7 +44,7 @@ export let Claimer: Role = {
 
         budget -= minimumCost;
 
-        let moveCost = blueprintCost([MOVE]);
+        let moveCost = Blueprint.cost([MOVE]);
         while (moveCost > 0 && blueprint.length < 6) {
             blueprint.push(MOVE);
             budget -= moveCost;

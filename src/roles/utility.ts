@@ -1,5 +1,6 @@
 import {Role} from "./Role";
-import {Job, Build, Repair, Harvest, Withdraw} from "../Orders";
+import {Job, Build, Repair, Harvest, Withdraw} from "../jobs/Jobs";
+import * as Blueprint from "../BlueprintUtils";
 
 if (!Memory.allocatedWorkers) {
     Memory.allocatedWorkers = {}
@@ -37,7 +38,6 @@ function shouldDoJob(creep: Creep, order: Job) {
             }
 
             return Memory.allocatedWorkers[order.type].length < MAX_WORKERS[order.type];
-            break;
         default:
             console.log("Unexpected item in bagging area: " + JSON.stringify(order));
             break;
@@ -82,8 +82,15 @@ function getNearestEnergySource(creep: Creep): Source | Structure | Resource {
         firstChoice.push(creep.room.storage)
     }
 
-    let container = creep.pos.findClosestByRange<StructureContainer>(FIND_STRUCTURES, {filter: {structureType: STRUCTURE_CONTAINER}});
-    if (container && container.store[RESOURCE_ENERGY] >= (creep.carryCapacity - creep.carry.energy)) {
+    // The nearest container with enough stuff in it.
+    let container = creep.pos.findClosestByRange<StructureContainer>(FIND_STRUCTURES, {filter: function(c: StructureContainer) {
+        if (c.structureType != STRUCTURE_CONTAINER) {
+            return false;
+        }
+
+        return c.store[RESOURCE_ENERGY] >= (creep.carryCapacity - creep.carry.energy)
+    }});
+    if (container) {
         firstChoice.push(container);
     }
 
@@ -134,11 +141,13 @@ function injectFillJob(creep: Creep) {
  * General utility creep that gets given jobs to do, and does them.
  */
 export let Utility: Role = {
+    name: "utility",
+
     synthesiseNewJobs(creep: Creep) {
         // We finished a job, time to get a new one.
         purgeAllocatedJobs(creep);
 
-        if (creep.room.controller.ticksToDowngrade < 2000) {
+        if (creep.room.controller && creep.room.controller.ticksToDowngrade < 2000) {
             console.log(creep.name + " is going to upgrade the controller, because doing so has become urgent.");
 
             injectFillJob(creep);
@@ -218,5 +227,24 @@ export let Utility: Role = {
                 type: "UPGRADE_CONTROLLER"
             });
         }
+    },
+
+    getBlueprint(budget: number) {
+        // Four sets of [WORK, CARRY, MOVE], then a [WORK, WORK, MOVE].
+        let bp = [WORK, CARRY, MOVE];
+        let bpCost = Blueprint.cost(bp);
+        if (budget < bpCost) {
+            return undefined;
+        }
+
+        budget -= bpCost;
+        let parts = [
+            bp, bp, bp,
+            [WORK, WORK, MOVE]
+        ];
+
+        bp.concat(Blueprint.fromRepeatedParts(budget, parts));
+
+        return bp;
     }
 };

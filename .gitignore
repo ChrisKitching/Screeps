@@ -2,3 +2,4 @@ gruntfile.js
 dist/*
 typings/*
 node_modules
+*.js

@@ -1,17 +1,13 @@
+import {RoleName} from "./Roles";
+
+
 export interface Role {
-    /**
-     * Called when the creep's job queue is empty to generate more work.
-     */
-    synthesiseNewJobs(creep: Creep): void;
+    name: RoleName;
 
     /**
-     * Get a creep blueprint for a creep of this type.
-     *
-     * @param maxCost The maximum amount of energy the returned blueprint shall cost.
-     *                The function may return undefined if the role cannot sensibly be
-     *                done within the given energy constraint.
+     * Called when the job queue is empty to generate more work.
      */
-    getBlueprint(maxCost: number): string[] | undefined;
+    synthesiseNewJobs(creep: Creep): void;
 
     /**
      * Called every tick before the job queue is processed, to do special actions.
@@ -22,7 +18,7 @@ export interface Role {
     tick?(creep: Creep): boolean;
 
     /**
-     * Called once when the creep is spawned. Used for initialising counters and so on.
+     * Called once when the unit is created. Useful for initialising memory and so on.
      */
-    onSpawn?(creep: Creep): void;
+    initialise?(creep: Creep): void;
 }

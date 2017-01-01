@@ -6,16 +6,18 @@ export const REQUIRED_FIELDS = [
 ];
 
 export let Raider: Role = {
+    name: "raider",
+
     tick(creep: Creep) {
         // If damaged, FLEE.
         if (creep.hits <= 2700 && creep.room.name != creep.memory.homeRoom) {
-            if (creep.memory.currentJob && creep.memory.currentJob.type != Jobs.RELOCATE_TO_ROOM) {
+            if (creep.memory.currentJob && creep.memory.currentJob.type != "RELOCATE_TO_ROOM") {
                 creep.stop();
             }
 
             creep.memory.orders = [
                 {
-                    type: Jobs.RELOCATE_TO_ROOM,
+                    type: "RELOCATE_TO_ROOM",
                     target: creep.memory.homeRoom
                 }
             ];
@@ -29,7 +31,7 @@ export let Raider: Role = {
         if (creep.hits == creep.hitsMax && creep.room.name == creep.memory.homeRoom) {
             creep.memory.orders = [
                 {
-                    type: Jobs.RELOCATE_TO_ROOM,
+                    type: "RELOCATE_TO_ROOM",
                     target: creep.memory.targetRoom
                 }
             ];
@@ -46,11 +48,28 @@ export let Raider: Role = {
 
                 creep.memory.orders = [
                     {
-                        type: Jobs.ATTACK,
+                        type: "ATTACK",
                         target: target.id
                     }
                 ]
             }
         }
+    },
+
+    getBlueprint(budget: number) {
+        return [
+            TOUGH, TOUGH, TOUGH, TOUGH, TOUGH,
+            TOUGH, TOUGH, TOUGH, TOUGH, TOUGH,
+            TOUGH, TOUGH, TOUGH, TOUGH, TOUGH,
+            TOUGH, TOUGH, TOUGH, TOUGH, TOUGH,
+            TOUGH,
+            ATTACK, ATTACK,
+            ATTACK, MOVE,
+            MOVE, MOVE, MOVE, MOVE, MOVE,
+            MOVE, MOVE, MOVE, MOVE, MOVE,
+            MOVE, MOVE, MOVE, MOVE, MOVE,
+            MOVE, MOVE, MOVE, MOVE, MOVE,
+            MOVE, MOVE, MOVE, MOVE, MOVE,
+        ];
     }
 };
