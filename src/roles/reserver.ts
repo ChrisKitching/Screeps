@@ -45,5 +45,26 @@ export let Reserver: Role = {
         }
 
         return blueprint;
+    },
+
+    shouldSpawn(state: CreepMemory) {
+        let room = Game.rooms[state.target];
+
+        // If we have no units in the room, assume it needs more reserving.
+        if (!room) {
+            return true;
+        }
+
+        if (!room.controller.reservation) {
+            return true;
+        }
+
+        // If the room isn't ours, we want it.
+        if (room.controller.reservation.username != "ckitching") {
+            return true;
+        }
+
+        // Don't let the reservation counter get unreasonably high.
+        return room.controller.reservation.ticksToEnd < 3500;
     }
 };

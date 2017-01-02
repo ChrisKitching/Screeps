@@ -88,5 +88,17 @@ export let Miner: Role = {
         }
 
         return miner;
+    },
+
+    // Don't spawn for a mineral that is dead.
+    shouldSpawn(state: CreepMemory) {
+        let source = Game.getObjectById(state.toMine);
+        if (source instanceof Mineral) {
+            // Minerals spend _long_ periods in the "dead" state. Check for
+            // that...
+            return source.mineralAmount > 0;
+        }
+
+        return true;
     }
 };

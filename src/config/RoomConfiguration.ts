@@ -7,8 +7,4 @@ export interface RoomConfiguration {
 
     // Sets the order in which units of certain roles are spawned.
     creepPriority: RoleName[];
-
-    shouldSpawn: {
-        [role: string]: (initialState: CreepMemory) => boolean;
-    }
 }

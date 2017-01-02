@@ -6,17 +6,7 @@ interface TowerMemory {
     murderTime: number;
 }
 
-
-declare global {
-    interface StructureTower {
-        memory: TowerMemory;
-
-        // Called every tick to make stuff happen.
-        tick(): void;
-    }
-}
-
-StructureTower.prototype.tick = function(this: Tower) {
+StructureTower.prototype.tick = function(this: StructureTower) {
     let room = this.room;
 
     // TODO: This is dumb as shit.

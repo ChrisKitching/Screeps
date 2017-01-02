@@ -99,6 +99,5 @@ export let W71N53: RoomConfiguration = {
         ]
     },
 
-    creepPriority: defaults.creepPriority,
-    shouldSpawn: defaults.shouldSpawn
+    creepPriority: defaults.creepPriority
 };

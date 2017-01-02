@@ -73,5 +73,17 @@ export let Builder: Role = {
         bp.concat(Blueprint.fromRepeatedParts(budget, parts));
 
         return bp;
+    },
+
+    shouldSpawn(state: CreepMemory) {
+        for (let i in Game.constructionSites) {
+            let cs = Game.constructionSites[i];
+
+            if (cs.pos.roomName == state.targetRoom) {
+                return true;
+            }
+        }
+
+        return false;
     }
 };

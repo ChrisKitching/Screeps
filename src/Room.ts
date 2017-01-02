@@ -1,20 +1,28 @@
-import {whitelist, ME} from "./config/global";
+import {ME} from "./config/global";
 import {isFriendly} from "./Controller";
-import {RoomMemory} from "./declarations";
 import * as Config from "./config/global";
 import {isEnergyfillable} from "./Structure";
+import {roles} from "./roles/Roles";
+import {Role} from "./roles/Role";
 
 // How damaged something has to be before we'll bother repairing it.
 const HITS_CARE_THRESH = 500;
 
 declare global {
+    interface StructureTower {
+        memory: TowerMemory;
+
+        // Called every tick to make stuff happen.
+        tick(): void;
+    }
+
     interface Room {
         memory: RoomMemory;
 
         gc(): void;
         tick(): void;
 
-        spawnCreep(type: string, initialMemory: any): string | undefined;
+        spawnCreep(role: Role, initialMemory: CreepMemory): string | undefined;
         maybeSpawnShit(): void;
         getEffectiveLevel(): number;
 
@@ -297,18 +305,7 @@ Room.prototype.gc = function(this:Room) {
     }
 };
 
-Room.prototype.getEffectiveLevel = function(this:Room) {
-    let avail = this.energyCapacityAvailable;
-    for (let i = 0; i < MAX_ENERGY.length; i++) {
-        if (MAX_ENERGY[i] > avail) {
-            return i;
-        }
-    }
-
-    return 0;
-};
-
-Room.prototype.spawnCreep = function (this:Room, type: string, initialMemory: CreepMemory) {
+Room.prototype.spawnCreep = function (this:Room, role: Role, initialMemory: CreepMemory) {
     let spawners = this.find<Spawn>(FIND_MY_SPAWNS);
     for (let i in spawners) {
         let spawner = spawners[i];
@@ -317,25 +314,29 @@ Room.prototype.spawnCreep = function (this:Room, type: string, initialMemory: Cr
             continue;
         }
 
-        let startingMemory = Object.assign({role: type, orders: []}, initialMemory);
+        let startingMemory = Object.assign({role: role.name, orders: []}, initialMemory);
+        let creepName = spawner.spawnCreep(role, role.getBlueprint(this.energyCapacityAvailable), startingMemory);
 
-        let creepName = spawner.spawnCreep(type, CreepClasses.getBlueprint(type, this.getEffectiveLevel()), startingMemory);
+        // Error codes from the screeps API get propragated up through that return value, soo...
+        if (typeof creepName == "number") {
+            // Check for all error codes, exhaustively.
+            switch (creepName) {
+                case ERR_NOT_OWNER:
+                case ERR_BUSY:
+                case ERR_NOT_ENOUGH_ENERGY:
+                    continue;
+                case ERR_INVALID_ARGS:
+                    console.log(this.name + ": Blueprint for " + role.name + " may be invalid!");
+                    return undefined;
 
-        // Check for all error codes, exhaustively.
-        switch (creepName) {
-            case ERR_NOT_OWNER:
-            case ERR_BUSY:
-            case ERR_NOT_ENOUGH_ENERGY:
-                continue;
-            case ERR_INVALID_ARGS:
-                console.log(this.name + ": Blueprint for " + type + " may be invalid!");
-                return false;
+                case ERR_NAME_EXISTS:
+                    console.log(this.name + ": Creep name collision of type " + role.name);
+                    return undefined;
+                case ERR_RCL_NOT_ENOUGH:
+                    return undefined;
+            }
 
-            case ERR_NAME_EXISTS:
-                console.log(this.name + ": Creep name collision of type " + type);
-                return false;
-            case ERR_RCL_NOT_ENOUGH:
-                return false;
+            return undefined;
         }
 
         return creepName;
@@ -351,37 +352,44 @@ Room.prototype.maybeSpawnShit = function (this:Room) {
     this.gc();
 
     let cfg = Config.getRoomConfiguration(this.name);
-    let shouldSpawn = cfg.shouldSpawn;
     let wantedCreeps = cfg.creeps;
     let creepPriority = cfg.creepPriority;
 
     for (let i = 0; i < creepPriority.length; i++) {
-        let role = creepPriority[i];
-        if (!wantedCreeps.hasOwnProperty(role)) {
+        let roleName = creepPriority[i];
+        let role = roles[roleName];
+        if (!wantedCreeps.hasOwnProperty(roleName)) {
             continue;
         }
 
-        if (!this.memory.slots.hasOwnProperty(role)) {
-            this.memory.slots[role] = {};
+        if (!this.memory.slots.hasOwnProperty(roleName)) {
+            this.memory.slots[roleName] = {};
         }
 
-        let roleSlots = this.memory.slots[role];
-        let wantedUnits = wantedCreeps[role];
+        // The units of this role that currently exist.
+        let roleSlots = this.memory.slots[roleName];
+
+        // The units of this role that are configured.
+        let wantedUnits = wantedCreeps[roleName];
         for (let ind in wantedUnits) {
             // This unit already exists.
             if (roleSlots.hasOwnProperty(ind.toString())) {
                 continue;
             }
 
+            // The specification for the unit we are considering spawning.
+            let initialMemory = wantedUnits[ind];
+
             // Is this a unit we actually want?
-            if (shouldSpawn[role] && !shouldSpawn[role](wantedUnits[ind])) {
+            if (role.shouldSpawn && !role.shouldSpawn(initialMemory)) {
                 continue;
             }
 
-            let creepName = this.spawnCreep(role, wantedUnits[ind]);
-            // If a creep was actually created, record it.
+            let creepName = this.spawnCreep(role, initialMemory);
+
+            // If a creep was actually created, write it back to roleSlots.
             if (creepName != undefined) {
-                console.log("We spawned a new " + role + " creep in slot " + ind);
+                console.log("We spawned a new " + roleName + " creep in slot " + ind);
                 roleSlots[ind] = creepName;
             }
 
